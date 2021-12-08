@@ -477,7 +477,7 @@ describe('appendAssets', () => {
       'http://icestark.com/css/index.css',
       'http://icestark.com/js/test1.js',
     ]);
-    Promise.all([loadAndAppendCssAssets(assets.cssList), loadAndAppendJsAssets(assets, {
+    Promise.all([loadAndAppendCssAssets(assets.cssList, {}), loadAndAppendJsAssets(assets, {
       scriptAttributes: ['crossorigin=anonymous', 'nomodule=false', 'type=module', 'src=http://xxxx.js']
     })])
       .then(() => {
@@ -519,7 +519,7 @@ describe('appendAssets', () => {
     const assets = getUrlAssets([
       'http://icestark.com/js/index.js'
     ]);
-    Promise.all([loadAndAppendCssAssets(assets.cssList), loadAndAppendJsAssets(assets, {
+    Promise.all([loadAndAppendCssAssets(assets.cssList, {}), loadAndAppendJsAssets(assets, {
       scriptAttributes: (url) => {
         if (url.includes('//icestark.com/js/index.js')) {
           return ['crossorigin=anonymous']
@@ -649,12 +649,13 @@ describe('appendCSS', () => {
     const div = document.createElement('div');
 
     appendCSS(
-      div,
       {
         type: AssetTypeEnum.EXTERNAL,
         content: '/test.css'
-      },
-      'icestark-css-0'
+      },{
+        root: div,
+        id: 'icestark-css-0'
+      }
     )
       .then(() => {
         expect(div.innerHTML).toContain('id="icestark-css-0"');
@@ -671,10 +672,13 @@ describe('appendCSS', () => {
   test('appendCSS -> style', () => {
     const div = document.createElement('div');
     const style = '.test { color: #fff;}';
-    appendCSS(div, {
+    appendCSS({
       type: AssetTypeEnum.INLINE,
       content: style,
-    }, 'icestark-css-0')
+    }, {
+      root: div,
+      id: 'icestark-css-0'
+    })
       .then(() => {
         expect(div.innerHTML).toContain('id="icestark-css-0"');
         expect(div.innerHTML).toContain(style);
@@ -694,12 +698,14 @@ describe('appendCSS', () => {
     const div = document.createElement('div');
 
     appendCSS(
-      div,
       {
         type: AssetTypeEnum.EXTERNAL,
         content: '/test.css'
       },
-      'icestark-css-0'
+      {
+        root: div,
+        id: 'icestark-css-0'
+      }
     )
       .then(() => {
         expect(div.innerHTML).toContain('id="icestark-css-0"');
