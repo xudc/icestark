@@ -93,9 +93,9 @@ export function appendCSS(
 
     if (type && type === AssetTypeEnum.INLINE) {
       const styleElement: HTMLStyleElement = document.createElement('style');
-      styleElement.innerHTML = content;
       styleElement.id = id;
       styleElement.setAttribute(PREFIX, DYNAMIC);
+      styleElement.innerHTML = content;
       root.appendChild(styleElement);
       resolve();
       return;
@@ -660,11 +660,35 @@ export function cacheAssets(cacheKey: string): void {
  * @export
  * @param {Assets} assets
  */
-export async function loadAndAppendCssAssets(cssList: Array<Asset | HTMLElement>) {
+export async function loadAndAppendCssAssets(cssList: Array<Asset | HTMLElement>, {
+  cacheCss = false,
+  fetch = defaultFetch,
+}: {
+  cacheCss?: boolean;
+  fetch?: Fetch;
+}) {
   const cssRoot: HTMLElement = document.getElementsByTagName('head')[0];
 
+  if (cacheCss) {
+    // No need to cache css when running into `<style />`
+    const needCachedCss = cssList.filter((css) => !isElement(css));
+
+    const cssContents = await fetchStyles(
+      needCachedCss as Asset[],
+      fetch,
+    );
+
+    return await Promise.all([
+      ...cssContents.map((content, index) => appendCSS(
+        cssRoot,
+        { content, type: AssetTypeEnum.INLINE }, `${PREFIX}-css-${index}`,
+      )),
+      ...cssList.filter((css) => isElement(css)).map((asset, index) => appendCSS(cssRoot, asset, `${PREFIX}-css-${index}`)),
+    ]);
+  }
+
   // load css content
-  await Promise.all(
+  return await Promise.all(
     cssList.map((asset, index) => appendCSS(cssRoot, asset, `${PREFIX}-css-${index}`)),
   );
 }
@@ -680,28 +704,14 @@ export async function loadAndAppendCssAssets(cssList: Array<Asset | HTMLElement>
 export async function loadAndAppendJsAssets(
   assets: Assets,
   {
-    sandbox,
-    fetch = defaultFetch,
     scriptAttributes = [],
   }: {
-    sandbox?: Sandbox;
-    fetch?: Fetch;
     scriptAttributes?: ScriptAttributes;
   },
 ) {
   const jsRoot: HTMLElement = document.getElementsByTagName('head')[0];
 
   const { jsList } = assets;
-
-  // handle scripts
-  if (sandbox && !sandbox.sandboxDisabled) {
-    const jsContents = await fetchScripts(jsList, fetch);
-    // excute code by order
-    jsContents.forEach((script) => {
-      sandbox.execScriptInSandbox(script);
-    });
-    return;
-  }
 
   // dispose inline script
   const hasInlineScript = jsList.find((asset) => asset.type === AssetTypeEnum.INLINE);

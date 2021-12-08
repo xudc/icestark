@@ -16,7 +16,7 @@ const AppLink = (props: AppLinkProps) => {
     <a
       {...rest}
       href={linkTo}
-      onClick={e => {
+      onClick={(e) => {
         e.preventDefault();
         // eslint-disable-next-line no-alert
         if (message && window.confirm(message) === false) {
